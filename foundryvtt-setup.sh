@@ -4,6 +4,18 @@ FOUNDRY_PORT=30000
 INSTALL_DIR="/opt/foundryvtt"
 DATA_DIR="$INSTALL_DIR/data"
 MAX_RETRIES=3
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLOUDFLARE_TOOLS="$SCRIPT_DIR/cloudflare/tools/cloudflare-tunnel-setup.sh"
+USE_BUILDKIT=0
+FORCE_DOWNLOAD=0
+
+# Make sure utility scripts are executable
+chmod +x "$CLOUDFLARE_TOOLS" 2>/dev/null || true
+
+# === Check for --force-download flag ===
+if [[ "$1" == "--force-download" ]]; then
+  FORCE_DOWNLOAD=1
+fi
 
 # === Step 1: System update ===
 echo "=== Updating system packages ==="
@@ -13,65 +25,123 @@ sudo apt update && sudo apt upgrade -y
 echo "=== Installing Docker and required tools ==="
 sudo apt install -y docker.io docker-compose unzip curl
 
-# === Step 3: Enable Docker on boot ===
+# === Step 3: Enable Docker and check group ===
+echo "🔧 Enabling Docker service..."
 sudo systemctl enable --now docker
 
-# === Step 4: Create directory structure ===
-echo "=== Creating directories ==="
-echo "Data Directory: $DATA_DIR"
-sudo mkdir -p "$DATA_DIR"
+if ! groups "$USER" | grep -qw docker; then
+    echo ""
+    echo "🔐 You are not in the 'docker' group. Adding you now..."
+    sudo usermod -aG docker "$USER"
+    echo "⚠️ Please log out and back in (or run 'newgrp docker') before re-running this script."
+    exit 1
+fi
+
+# === Step 4: Create install directory ===
+echo ""
+echo "📁 Creating installation directories"
 echo "Install Directory: $INSTALL_DIR"
-sudo chown -R $USER:$USER "$INSTALL_DIR"
+echo "Data Directory: $DATA_DIR"
 
-# === Step 5: Prompt for Foundry Download URL ===
-while true; do
-    echo ""
-    read -p "Enter your Foundry VTT timed download URL (Node.js version): " DOWNLOAD_URL_RAW
-    DOWNLOAD_URL=$(echo "$DOWNLOAD_URL_RAW" | xargs) # Trim whitespace
+if ! sudo mkdir -p "$DATA_DIR"; then
+    echo "❌ Failed to create $DATA_DIR"
+    exit 1
+fi
 
-    echo ""
-    echo "You entered:"
-    echo "---------------------------------------"
-    echo "$DOWNLOAD_URL"
-    echo "---------------------------------------"
-    read -p "Is this correct? (y/n): " CONFIRM
-    if [[ "$CONFIRM" == "y" || "$CONFIRM" == "Y" ]]; then
-        break
-    fi
-done
+if ! sudo chown -R "$USER:$USER" "$INSTALL_DIR"; then
+    echo "❌ Failed to change ownership of $INSTALL_DIR"
+    exit 1
+fi
 
-# === Step 6: Download Foundry zip ===
-echo "=== Downloading Foundry VTT... ==="
+# === Step 5: Download Foundry VTT ===
 cd "$INSTALL_DIR"
-ATTEMPT=0
-while true; do
-    curl -L --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 300 "$DOWNLOAD_URL" --output foundryvtt.zip
-    if [[ $? -eq 0 && -f "foundryvtt.zip" ]]; then
-        echo "✅ Download succeeded."
-        break
-    else
-        echo "❌ Download failed. Attempt $((++ATTEMPT)) of $MAX_RETRIES."
-        if [[ $ATTEMPT -ge $MAX_RETRIES ]]; then
-            read -p "Try entering a new URL? (y to retry, anything else to abort): " RETRY_INPUT
-            if [[ "$RETRY_INPUT" == "y" || "$RETRY_INPUT" == "Y" ]]; then
-                read -p "Enter new download URL: " DOWNLOAD_URL_RAW
-                DOWNLOAD_URL=$(echo "$DOWNLOAD_URL_RAW" | xargs)
-                ATTEMPT=0
-            else
-                echo "⛔ Aborting setup."
-                exit 1
+
+if [[ ! -f "foundryvtt.zip" || "$FORCE_DOWNLOAD" -eq 1 ]]; then
+    while true; do
+        echo ""
+        read -p "Enter your Foundry VTT timed download URL (Node.js version): " DOWNLOAD_URL_RAW
+        DOWNLOAD_URL=$(echo "$DOWNLOAD_URL_RAW" | xargs) # Trim whitespace
+
+        echo ""
+        echo "You entered:"
+        echo "---------------------------------------"
+        echo "$DOWNLOAD_URL"
+        echo "---------------------------------------"
+        read -p "Is this correct? (y/n): " CONFIRM
+        if [[ "$CONFIRM" == "y" || "$CONFIRM" == "Y" ]]; then
+            break
+        fi
+    done
+
+    echo "⬇️  Downloading Foundry VTT..."
+    ATTEMPT=0
+    while true; do
+        curl -L --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 300 "$DOWNLOAD_URL" --output foundryvtt.zip
+        if [[ $? -eq 0 && -f "foundryvtt.zip" ]]; then
+            echo "✅ Download succeeded."
+            break
+        else
+            echo "❌ Download failed. Attempt $((++ATTEMPT)) of $MAX_RETRIES."
+            if [[ $ATTEMPT -ge $MAX_RETRIES ]]; then
+                read -p "Try entering a new URL? (y to retry, anything else to abort): " RETRY_INPUT
+                if [[ "$RETRY_INPUT" == "y" || "$RETRY_INPUT" == "Y" ]]; then
+                    read -p "Enter new download URL: " DOWNLOAD_URL_RAW
+                    DOWNLOAD_URL=$(echo "$DOWNLOAD_URL_RAW" | xargs)
+                    ATTEMPT=0
+                else
+                    echo "⛔ Aborting setup."
+                    exit 1
+                fi
             fi
         fi
+    done
+else
+    echo "📦 Foundry zip already exists — skipping download (use --force-download to re-download)."
+fi
+
+# === Step 6: Extract and validate ===
+if [[ ! -f "$INSTALL_DIR/resources/app/main.mjs" ]]; then
+    echo "📂 Extracting Foundry..."
+    unzip -q foundryvtt.zip -d "$INSTALL_DIR" && rm foundryvtt.zip
+
+    if [[ ! -f "$INSTALL_DIR/resources/app/main.mjs" ]]; then
+        echo "❌ Foundry failed to extract correctly. Expected file not found:"
+        echo "   $INSTALL_DIR/resources/app/main.mjs"
+        exit 1
     fi
-done
+else
+    echo "✅ Foundry already extracted — skipping unzip."
+fi
 
-# === Step 7: Extract Foundry and clean up ===
-echo "=== Extracting Foundry ==="
-unzip -q foundryvtt.zip -d "$INSTALL_DIR"
-rm foundryvtt.zip
+# === Step 7: Check or install BuildKit ===
+if ! docker buildx version > /dev/null 2>&1; then
+    echo "⚠️  Docker BuildKit is not currently available."
+    read -p "Would you like to install and enable BuildKit now? (y/n): " ENABLE_BUILDKIT
 
-# === Step 8: Create Dockerfile and Compose ===
-echo "=== Creating Docker environment ==="
+    if [[ "$ENABLE_BUILDKIT" =~ ^[Yy]$ ]]; then
+        echo "🔧 Installing buildx plugin..."
+        mkdir -p ~/.docker/cli-plugins
+        curl -sSL https://github.com/docker/buildx/releases/latest/download/buildx-v0.11.2.linux-amd64 \
+          -o ~/.docker/cli-plugins/docker-buildx && chmod +x ~/.docker/cli-plugins/docker-buildx
+
+        if docker buildx version > /dev/null 2>&1; then
+            echo "✅ BuildKit installed."
+            USE_BUILDKIT=1
+        else
+            echo "❌ BuildKit installation failed."
+            read -p "Continue using legacy builder? (y/n): " CONTINUE
+            [[ ! "$CONTINUE" =~ ^[Yy]$ ]] && exit 1
+        fi
+    else
+        echo "⚠️ Continuing with the legacy builder (deprecated)."
+    fi
+else
+    echo "✅ BuildKit is already available."
+    USE_BUILDKIT=1
+fi
+
+# === Step 8: Docker setup ===
+echo "🐳 Creating Dockerfile and docker-compose.yml..."
 
 cat <<EOF > "$INSTALL_DIR/Dockerfile"
 FROM node:20-slim
@@ -94,25 +164,37 @@ services:
     restart: unless-stopped
 EOF
 
-# === Step 9: Start Foundry ===
+# === Step 9: Build + start container ===
 cd "$INSTALL_DIR"
-docker-compose up -d --build
+echo "🚀 Building and launching Foundry..."
 
-echo ""
-echo "✅ Foundry is now running at http://localhost:$FOUNDRY_PORT"
+if [[ "$USE_BUILDKIT" -eq 1 ]]; then
+    DOCKER_BUILDKIT=1 docker-compose up -d --build
+else
+    docker-compose up -d --build
+fi
 
-# === Step 10: Prompt to chain tunnel setup ===
-echo ""
-read -p "Would you like to run the Cloudflare Tunnel setup now? (y/n): " TUNNEL_NOW
-if [[ "$TUNNEL_NOW" == "y" || "$TUNNEL_NOW" == "Y" ]]; then
-    echo "Launching cloudflare-tunnel-setup.sh..."
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    "$SCRIPT_DIR/cloudflare-tunnel-setup.sh"
+if [[ $? -ne 0 ]]; then
+    echo ""
+    echo "❌ Docker container failed to start. Check logs with:"
+    echo "   docker-compose logs"
+    exit 1
 else
     echo ""
-    echo "You can run the tunnel setup later with:"
-    echo "    ./cloudflare-tunnel-setup.sh"
+    echo "✅ Foundry is now running at http://localhost:$FOUNDRY_PORT"
+fi
+
+# === Step 10: Offer to run Cloudflare Tunnel script ===
+echo ""
+read -p "Would you like to run the Cloudflare Tunnel setup now? (y/n): " TUNNEL_NOW
+if [[ "$TUNNEL_NOW" =~ ^[Yy]$ ]]; then
+    echo "🚪 Launching cloudflare-tunnel-setup.sh..."
+    "$CLOUDFLARE_TOOLS"
+else
+    echo ""
+    echo "ℹ️ You can run the tunnel setup later with:"
+    echo "    ./cloudflare/cloudflare-tools.sh"
     echo "Make sure you're in your scripts repo directory when you do."
     echo ""
-    echo "🎉 Setup complete. Foundry is running locally at: http://localhost:30000"
+    echo "🎉 Setup complete. Foundry is running locally at: http://localhost:$FOUNDRY_PORT"
 fi

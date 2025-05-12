@@ -5,13 +5,17 @@
 ## [unreleased]
 
 ### Added
-- `cloudflare-tunnel-setup.sh`: Automates Cloudflare Tunnel setup for HTTPS access to Foundry VTT, including domain prompt with whitespace trimming and confirmation.
+- `cloudflare/tools/cloudflare-tunnel-setup.sh`: Improves setup script using Cloudflare's official APT repository, domain validation, and optional service install.
+- `cloudflare/tools/cloudflare-tunnel-teardown.sh`: Safely deletes tunnels, removes config files, and optionally uninstalls `cloudflared`.
+- `cloudflare/tools/cloudflare-tunnel-status.sh`: Displays tunnel list, current config file status, and validates `cloudflared` presence.
+- `cloudflare/cloudflare-tools.sh`: Menu-based wrapper for tunnel setup, teardown, and status tools.
 
 ### Changed
-- `foundryvtt-setup-oracle.sh`: 
-  - Assumes fixed install path (`/opt/foundryvtt`) for use alongside a portable `scripts/` repo.
-  - Added robust prompt and validation for Foundry download URL.
-  - Appends logic to prompt user to optionally run `cloudflare-tunnel-setup.sh` after installation completes.
+- `foundryvtt-setup.sh`:
+  - Corrects path handling to launch tunnel setup from the `scripts` repo instead of `/opt`.
+  - Skips download prompt if `foundryvtt.zip` is already present unless `--force-download` is passed.
+  - Adds support for detecting and optionally installing Docker BuildKit (`buildx`), with fallback to legacy builder.
+  - Improves final success checks to avoid misleading success messages after a failed container build.
 
 ---
 
