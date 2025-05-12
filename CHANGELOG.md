@@ -23,9 +23,12 @@
   - Adds validation and status check when installing as a `systemd` service:
     - Confirms whether the service is running (`active`)
     - Confirms whether the service is enabled to start on boot
-- Replaced APT-based install with direct binary install from GitHub to ensure compatibility with Ubuntu 24.04 (Noble) and future distros.
-  - Downloads the latest `cloudflared-linux-amd64`.
-  - Installs to `/usr/local/bin` and verifies installation path.
+  - Replaced APT-based install with direct binary install from GitHub to ensure compatibility with Ubuntu 24.04 (Noble) and future distros.
+    - Downloads the latest `cloudflared-linux-amd64`.
+    - Installs to `/usr/local/bin` and verifies installation path.
+  - Added automatic architecture detection (`x86_64`, `arm64`, etc.) to download the correct `cloudflared` binary.
+    - Prevents execution errors on ARM-based hosts like Oracle's Ampere A1 by using the appropriate `cloudflared-linux-arm64` binary.
+    - Fails safely with a descriptive error on unsupported architectures.
 
 ---
 

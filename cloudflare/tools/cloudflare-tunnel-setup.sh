@@ -5,17 +5,25 @@ CONFIG_DIR="$HOME/.cloudflared"
 CONFIG_FILE="$CONFIG_DIR/config.yml"
 CREDENTIAL_FILE="$CONFIG_DIR/${TUNNEL_NAME}.json"
 
-# === Step 1: Install cloudflared (binary install for all Ubuntu versions) ===
+# === Step 1: Install cloudflared (with architecture detection) ===
 echo "🔧 Installing cloudflared..."
 
+ARCH=$(uname -m)
 CLOUDFLARED_BIN="/usr/local/bin/cloudflared"
 
 if ! command -v cloudflared > /dev/null 2>&1; then
-    echo "📦 Downloading latest cloudflared release..."
-    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-      -o cloudflared
+    echo "📦 Downloading latest cloudflared release for architecture: $ARCH"
 
-    echo "🔐 Installing to $CLOUDFLARED_BIN..."
+    if [[ "$ARCH" == "x86_64" ]]; then
+        DOWNLOAD_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+    elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        DOWNLOAD_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
+    else
+        echo "❌ Unsupported architecture: $ARCH"
+        exit 1
+    fi
+
+    curl -L "$DOWNLOAD_URL" -o cloudflared
     chmod +x cloudflared
     sudo mv cloudflared "$CLOUDFLARED_BIN"
 else
