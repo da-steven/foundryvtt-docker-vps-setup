@@ -16,6 +16,13 @@
   - Skips download prompt if `foundryvtt.zip` is already present unless `--force-download` is passed.
   - Adds support for detecting and optionally installing Docker BuildKit (`buildx`), with fallback to legacy builder.
   - Improves final success checks to avoid misleading success messages after a failed container build.
+- `cloudflare/tools/cloudflare-tunnel-setup.sh`:
+  - Resolves and uses absolute path to `cloudflared` to prevent PATH-related errors after install.
+  - Adds a post-install sanity check to confirm `cloudflared` is usable before continuing.
+  - Runs the tunnel via resolved binary to ensure reliability.
+  - Adds validation and status check when installing as a `systemd` service:
+    - Confirms whether the service is running (`active`)
+    - Confirms whether the service is enabled to start on boot
 
 ---
 

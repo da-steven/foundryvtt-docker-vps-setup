@@ -22,14 +22,21 @@ else
     echo "✅ cloudflared is already installed."
 fi
 
+# === Step 1.5: Validate cloudflared is in PATH ===
+CLOUDFLARED="$(command -v cloudflared)"
+if [[ -z "$CLOUDFLARED" ]]; then
+    echo "❌ cloudflared was not found in PATH after install. Try restarting your shell or running 'hash -r'."
+    exit 1
+fi
+
 # === Step 2: Login to Cloudflare ===
 echo ""
 echo "🌐 You will now log in to Cloudflare in your browser..."
-cloudflared tunnel login
+"$CLOUDFLARED" tunnel login
 
 # === Step 3: Create the tunnel ===
 echo "🚧 Creating tunnel: $TUNNEL_NAME"
-cloudflared tunnel create "$TUNNEL_NAME"
+"$CLOUDFLARED" tunnel create "$TUNNEL_NAME"
 
 # === Step 4: Prompt for domain with trim and confirm ===
 while true; do
@@ -62,18 +69,36 @@ EOF
 # === Step 6: Run tunnel interactively ===
 echo ""
 echo "🚀 Starting the tunnel interactively..."
-cloudflared tunnel run "$TUNNEL_NAME" &
+"$CLOUDFLARED" tunnel run "$TUNNEL_NAME" &
 
-# === Step 7: Offer to install as a service ===
+# === Step 7: Offer to install as a system service ===
 echo ""
 read -p "Do you want to install Cloudflare Tunnel as a system service (auto-start)? (y/n): " SETUP_SERVICE
 if [[ "$SETUP_SERVICE" =~ ^[Yy]$ ]]; then
     echo "🛠️ Installing tunnel as a background service..."
-    sudo cloudflared service install
-    echo "✅ Tunnel will now start automatically on reboot."
+    sudo "$CLOUDFLARED" service install
+
+    echo ""
+    echo "🔍 Checking service status..."
+    SERVICE_NAME="cloudflared.service"
+
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        echo "✅ Service is currently active (running)."
+    else
+        echo "⚠️ Service is not running. You can start it with:"
+        echo "    sudo systemctl start $SERVICE_NAME"
+    fi
+
+    if systemctl is-enabled --quiet "$SERVICE_NAME"; then
+        echo "✅ Service is enabled to start on boot."
+    else
+        echo "⚠️ Service is not enabled. You can enable it with:"
+        echo "    sudo systemctl enable $SERVICE_NAME"
+    fi
 else
+    echo ""
     echo "ℹ️ You can manually start the tunnel anytime with:"
-    echo "    cloudflared tunnel run $TUNNEL_NAME"
+    echo "    $CLOUDFLARED tunnel run $TUNNEL_NAME"
 fi
 
 echo ""
