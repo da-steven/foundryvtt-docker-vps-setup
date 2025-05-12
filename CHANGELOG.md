@@ -29,7 +29,7 @@
   - Added automatic architecture detection (`x86_64`, `arm64`, etc.) to download the correct `cloudflared` binary.
     - Prevents execution errors on ARM-based hosts like Oracle's Ampere A1 by using the appropriate `cloudflared-linux-arm64` binary.
     - Fails safely with a descriptive error on unsupported architectures.
-
+- `cloudflare/tools/cloudflare-tunnel-verify.sh`: adds debug checks to verify Cloudflare tunnel.
 ---
 
 ## Initial Commit

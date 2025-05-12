@@ -5,9 +5,10 @@ TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SETUP_SCRIPT="$TOOL_DIR/tools/cloudflare-tunnel-setup.sh"
 TEARDOWN_SCRIPT="$TOOL_DIR/tools/cloudflare-tunnel-teardown.sh"
 STATUS_SCRIPT="$TOOL_DIR/tools/cloudflare-tunnel-status.sh" 
+VERIFY_SCRIPT="$TOOL_DIR/tools/cloudflare-tunnel-verify.sh"
 
 # Make sure sub-scripts are executable
-chmod +x "$SETUP_SCRIPT" "$TEARDOWN_SCRIPT" "$STATUS_SCRIPT" 2>/dev/null || true
+chmod +x "$SETUP_SCRIPT" "$TEARDOWN_SCRIPT" "$STATUS_SCRIPT" "$VERIFY_SCRIPT" 2>/dev/null || true
 
 show_menu() {
   echo ""
@@ -16,9 +17,10 @@ show_menu() {
   echo "1) Setup Cloudflare Tunnel"
   echo "2) Teardown Cloudflare Tunnel"
   echo "3) Show Tunnel Status"
-  echo "4) Exit"
+  echo "4) Verify Tunnel Connection"
+  echo "5) Exit"
   echo ""
-  read -p "Choose an option [1-3]: " CHOICE
+  read -p "Choose an option [1-5]: " CHOICE
 }
 
 while true; do
@@ -45,12 +47,19 @@ while true; do
         echo "❌ Status script not found: $STATUS_SCRIPT"
       fi
       ;;
-    4)
+   4)
+      if [[ -f "$VERIFY_SCRIPT" ]]; then
+        bash "$VERIFY_SCRIPT"
+      else
+        echo "❌ Verify script not found: $VERIFY_SCRIPT"
+      fi
+      ;;
+    5)
       echo "👋 Exiting Cloudflare tools."
       exit 0
       ;;
     *)
-      echo "❓ Invalid option. Please enter 1, 2, or 3."
+      echo "❓ Invalid option. Please enter 1-5."
       ;;
   esac
 done
