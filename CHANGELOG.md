@@ -23,6 +23,9 @@
   - Adds validation and status check when installing as a `systemd` service:
     - Confirms whether the service is running (`active`)
     - Confirms whether the service is enabled to start on boot
+- Replaced APT-based install with direct binary install from GitHub to ensure compatibility with Ubuntu 24.04 (Noble) and future distros.
+  - Downloads the latest `cloudflared-linux-amd64`.
+  - Installs to `/usr/local/bin` and verifies installation path.
 
 ---
 

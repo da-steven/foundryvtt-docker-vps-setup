@@ -5,19 +5,19 @@ CONFIG_DIR="$HOME/.cloudflared"
 CONFIG_FILE="$CONFIG_DIR/config.yml"
 CREDENTIAL_FILE="$CONFIG_DIR/${TUNNEL_NAME}.json"
 
-# === Step 1: Install cloudflared ===
+# === Step 1: Install cloudflared (binary install for all Ubuntu versions) ===
 echo "🔧 Installing cloudflared..."
 
+CLOUDFLARED_BIN="/usr/local/bin/cloudflared"
+
 if ! command -v cloudflared > /dev/null 2>&1; then
-    echo "Fetching Cloudflare's package signing key..."
-    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg > /dev/null
+    echo "📦 Downloading latest cloudflared release..."
+    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+      -o cloudflared
 
-    echo "Adding Cloudflare APT repository..."
-    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared stable main' \
-      | sudo tee /etc/apt/sources.list.d/cloudflared.list
-
-    sudo apt update
-    sudo apt install -y cloudflared
+    echo "🔐 Installing to $CLOUDFLARED_BIN..."
+    chmod +x cloudflared
+    sudo mv cloudflared "$CLOUDFLARED_BIN"
 else
     echo "✅ cloudflared is already installed."
 fi
