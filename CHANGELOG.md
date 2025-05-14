@@ -16,6 +16,9 @@
   - Verifies cloudflared systemd service is running and enabled
   - Performs live HTTPS status check to validate Foundry accessibility
   - Links to whatsmydns.net for propagation checks
+- `.env.defaults`: Defines centralized environment variables for Foundry and Cloudflare setup scripts, including install paths, ports, container name, and tunnel configuration.
+- `.env.local.template`: Safe, user-editable template for local environment overrides. Includes usage instructions and is intended to be copied to `.env.local`.
+- `.gitignore`: Added `.env.local` to prevent committing user-specific environment overrides.
 
 ### Changed
 - `foundryvtt-setup.sh`:
@@ -44,7 +47,7 @@
   - Adds clear instructions for selecting root domain during login
   - Displays public DNS and tunnel status with clearer error messages
   - Prints whatsmydns.net A record propagation link after setup
-
+- (Planned) Future updates to `foundryvtt-setup.sh` and `cloudflare-tunnel-setup.sh` will support auto-loading `.env.defaults` and optional `.env.local` overrides.
 ---
 
 ## Initial Commit
