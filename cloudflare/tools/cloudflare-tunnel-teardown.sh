@@ -5,6 +5,13 @@ CONFIG_DIR="$HOME/.cloudflared"
 CONFIG_FILE="$CONFIG_DIR/config.yml"
 CREDENTIAL_FILE="$CONFIG_DIR/${TUNNEL_NAME}.json"
 
+print_header() {
+  echo ""
+  echo "╭──────────────────────────────────────────────╮"
+  echo "│  💥Teardown Cloudflare Tunnel"
+  echo "╰──────────────────────────────────────────────╯"
+}
+
 echo "⚠️  WARNING: This will permanently delete the Cloudflare Tunnel '$TUNNEL_NAME'."
 echo "It will also stop any running tunnel processes and remove local configs."
 

@@ -9,6 +9,13 @@
 - `cloudflare/tools/cloudflare-tunnel-teardown.sh`: Safely deletes tunnels, removes config files, and optionally uninstalls `cloudflared`.
 - `cloudflare/tools/cloudflare-tunnel-status.sh`: Displays tunnel list, current config file status, and validates `cloudflared` presence.
 - `cloudflare/cloudflare-tools.sh`: Menu-based wrapper for tunnel setup, teardown, and status tools.
+- `cloudflare-tunnel-verify.sh`:
+  - Verifies existence and correctness of `/etc/cloudflared/config.yml`
+  - Extracts and validates tunnel UUID, credentials, and target hostname
+  - Confirms A/AAAA DNS resolution (accounting for Cloudflare CNAME flattening)
+  - Verifies cloudflared systemd service is running and enabled
+  - Performs live HTTPS status check to validate Foundry accessibility
+  - Links to whatsmydns.net for propagation checks
 
 ### Changed
 - `foundryvtt-setup.sh`:
@@ -30,6 +37,14 @@
     - Prevents execution errors on ARM-based hosts like Oracle's Ampere A1 by using the appropriate `cloudflared-linux-arm64` binary.
     - Fails safely with a descriptive error on unsupported architectures.
 - `cloudflare/tools/cloudflare-tunnel-verify.sh`: adds debug checks to verify Cloudflare tunnel.
+- `cloudflare-tunnel-setup.sh`:
+  - Writes system-wide config to `/etc/cloudflared/config.yml` for compatibility with systemd
+  - Renames tunnel credentials to match UUID (Cloudflare local tunnel standard)
+  - Installs `cloudflared` as a systemd service with `--config` and `--origincert` flags
+  - Adds clear instructions for selecting root domain during login
+  - Displays public DNS and tunnel status with clearer error messages
+  - Prints whatsmydns.net A record propagation link after setup
+
 ---
 
 ## Initial Commit

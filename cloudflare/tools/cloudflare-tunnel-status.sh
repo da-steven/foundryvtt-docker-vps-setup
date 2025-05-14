@@ -2,6 +2,15 @@
 
 CONFIG_FILE="$HOME/.cloudflared/config.yml"
 
+print_header() {
+  echo ""
+  echo "╭──────────────────────────────────────────────╮"
+  echo "│ 🔍 Checking Cloudflare Tunnel Status"
+  echo "╰──────────────────────────────────────────────╯"
+}
+
+print_header
+
 # === Step 1: Check for cloudflared ===
 if ! command -v cloudflared > /dev/null 2>&1; then
   echo "❌ cloudflared is not installed. Please run the setup script first."
@@ -25,5 +34,6 @@ else
   echo ""
   echo "ℹ️ No tunnel config file found at: $CONFIG_FILE"
 fi
-
+echo ""
+echo ""
 exit 0

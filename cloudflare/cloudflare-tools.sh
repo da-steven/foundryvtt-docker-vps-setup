@@ -10,6 +10,13 @@ VERIFY_SCRIPT="$TOOL_DIR/tools/cloudflare-tunnel-verify.sh"
 # Make sure sub-scripts are executable
 chmod +x "$SETUP_SCRIPT" "$TEARDOWN_SCRIPT" "$STATUS_SCRIPT" "$VERIFY_SCRIPT" 2>/dev/null || true
 
+print_header() {
+  echo ""
+  echo "╭──────────────────────────────────────────────╮"
+  echo "│ ⚙️ Cloudflare Tunnel Tools Menu"
+  echo "╰──────────────────────────────────────────────╯"
+}
+
 show_menu() {
   echo ""
   echo "🛡️  Cloudflare Tunnel Tools"
