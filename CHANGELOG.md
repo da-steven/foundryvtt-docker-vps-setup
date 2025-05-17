@@ -19,6 +19,9 @@
 - `.env.defaults`: Defines centralized environment variables for Foundry and Cloudflare setup scripts, including install paths, ports, container name, and tunnel configuration.
 - `.env.local.template`: Safe, user-editable template for local environment overrides. Includes usage instructions and is intended to be copied to `.env.local`.
 - `.gitignore`: Added `.env.local` to prevent committing user-specific environment overrides.
+- `cloudflare-tools.sh`: New interactive menu interface for managing Cloudflare tunnels.
+  - Supports setup, teardown, status, and verify actions.
+  - Supports optional flags (`--setup`, `--teardown`, `--status`, `--verify`, `--help`) for CLI automation.
 
 ### Changed
 - `foundryvtt-setup.sh`:
@@ -47,7 +50,15 @@
   - Adds clear instructions for selecting root domain during login
   - Displays public DNS and tunnel status with clearer error messages
   - Prints whatsmydns.net A record propagation link after setup
-- (Planned) Future updates to `foundryvtt-setup.sh` and `cloudflare-tunnel-setup.sh` will support auto-loading `.env.defaults` and optional `.env.local` overrides.
+- Updates `foundryvtt-setup.sh` and `cloudflare-tunnel-setup.sh` to support auto-loading `.env.defaults` and optional `.env.local` overrides.
+- Allows multiple Foundry installs based on `.env` settings
+  - Creates a "main" install in a default location
+  - Allows "alt" installs distinguished by a user provided suffice (e.g. 'dev' or 'v13)
+- All tunnel utility scripts (`setup`, `teardown`, `status`, `verify`) are now:
+  - Multi-instance aware via `.env.local` (`MAIN_INSTANCE` and `INSTANCE_SUFFIX` support).
+  - Able to locate credentials/configs based on UUID or fallback tunnel name.
+  - Use consistent emoji/logging UX across all scripts.
+  - Cleanly handle missing tunnel files or deleted remote tunnels.
 ---
 
 ## Initial Commit
