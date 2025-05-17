@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# === Load environment defaults if present ===
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-[ -f "$SCRIPT_DIR/../../.env.defaults" ] && source "$SCRIPT_DIR/../../.env.defaults"
-[ -f "$SCRIPT_DIR/../../.env.local" ] && source "$SCRIPT_DIR/../../.env.local"
+# Load environment variables
+UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../utils" && pwd)"
+ENV_LOADER="$UTILS_DIR/load-env.sh"
+
+if [[ ! -f "$ENV_LOADER" ]]; then
+  echo "❌ Could not find required: $ENV_LOADER"
+  exit 1
+fi
+
+source "$ENV_LOADER"
 
 print_header() {
   echo -e "\n\033[1;36m╭──────────────────────────────────────────────╮"

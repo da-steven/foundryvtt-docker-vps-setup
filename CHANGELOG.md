@@ -59,6 +59,7 @@
   - Able to locate credentials/configs based on UUID or fallback tunnel name.
   - Use consistent emoji/logging UX across all scripts.
   - Cleanly handle missing tunnel files or deleted remote tunnels.
+- Refactored environment variable loading into new `utils/load-env.sh`
 ---
 
 ## Initial Commit

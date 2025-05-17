@@ -8,8 +8,16 @@ FORCE_DOWNLOAD=0
 MAX_RETRIES=3
 
 # Load environment variables
-[ -f "$SCRIPT_DIR/../.env.defaults" ] && source "$SCRIPT_DIR/../.env.defaults"
-[ -f "$SCRIPT_DIR/../.env.local" ] && source "$SCRIPT_DIR/../.env.local"
+UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/utils" && pwd)"
+ENV_LOADER="$UTILS_DIR/load-env.sh"
+
+if [[ ! -f "$ENV_LOADER" ]]; then
+  echo "❌ Could not find required: $ENV_LOADER"
+  exit 1
+fi
+
+source "$ENV_LOADER"
+
 
 # Make sure utility scripts are executable
 chmod +x "$CLOUDFLARE_TOOLS" 2>/dev/null || true
